@@ -224,4 +224,4 @@ docker compose down -v   # remove volumes. use com cautela
 
 ## Licença
 
-MIT. Consulte o arquivo `LICENSE`.
+Apache License 2.0. Consulte o arquivo `LICENSE`.
