@@ -1,0 +1,36 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports: ["8000:8000"]
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PROVIDER_URL=http://provider:9000/cotacao
+      - CACHE_TTL_SECONDS=60
+      - RETRY_ATTEMPTS=3
+      - RETRY_BASE_SECONDS=0.2
+      - FALLBACK_VALUE=5.00
+    depends_on: [redis, provider]
+
+  provider:
+    build:
+      context: .
+      dockerfile: Dockerfile.provider
+    ports: ["9000:9000"]
+    environment:
+      - FAIL_PROB=0.25          # 25% de erro (ajuste p/ demonstrar)
+      - MIN_DELAY_MS=50
+      - MAX_DELAY_MS=400
+      - FORCE_FAIL=0            # coloque 1 para falhar sempre na demo
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "no"]
+
+volumes:
+  redis-data:
