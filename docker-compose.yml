@@ -3,7 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
-    ports: ["8000:8000"]
+    ports:
+      - "8000:8000"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -12,25 +13,54 @@ services:
       - RETRY_ATTEMPTS=3
       - RETRY_BASE_SECONDS=0.2
       - FALLBACK_VALUE=5.00
-    depends_on: [redis, provider]
+    depends_on:
+      redis:
+        condition: service_healthy
+      provider:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - appnet
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   provider:
     build:
       context: .
       dockerfile: Dockerfile.provider
-    ports: ["9000:9000"]
+    ports:
+      - "9000:9000"
     environment:
       - FAIL_PROB=0.25          # 25% de erro (ajuste p/ demonstrar)
       - MIN_DELAY_MS=50
       - MAX_DELAY_MS=400
       - FORCE_FAIL=0            # coloque 1 para falhar sempre na demo
+    restart: unless-stopped
+    networks:
+      - appnet
 
   redis:
-    image: redis:7
-    ports: ["6379:6379"]
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
     volumes:
       - redis-data:/data
     command: ["redis-server", "--save", "60", "1", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - appnet
 
 volumes:
   redis-data:
+
+networks:
+  appnet:
+    driver: bridge
